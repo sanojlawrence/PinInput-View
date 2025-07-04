@@ -1,13 +1,12 @@
 package com.jldevelopers.pininputview;
 
-import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
-import android.text.InputFilter;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -41,11 +40,10 @@ public class PinInputView extends FrameLayout {
     private float digitSpacing;
     private boolean maskInput;
 
+    private boolean isErrorState = false;
     private boolean isLabelFloating = false;
     private float labelTranslationY;
     private final float floatingLabelScale = 0.75f;
-
-    private boolean isErrorState = false;
 
     public interface OnPinEnteredListener {
         void onPinEntered(String pin);
@@ -90,105 +88,111 @@ public class PinInputView extends FrameLayout {
 
         pinContainer = new LinearLayout(context);
         pinContainer.setOrientation(LinearLayout.HORIZONTAL);
-        pinContainer.setPadding((int) dpToPx(8), (int) dpToPx(15), (int) dpToPx(8), (int) dpToPx(5)); // Left, Top, Right, Bottom
-        pinContainer.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-        addView(pinContainer);
+        pinContainer.setPadding((int) dpToPx(16), (int) dpToPx(24), (int) dpToPx(16), (int) dpToPx(5));
 
         labelTextView = new TextView(context);
         labelTextView.setTextSize(16);
         labelTextView.setTextColor(hintColor);
-        labelTextView.setVisibility(GONE);
         FrameLayout.LayoutParams labelParams = new FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-        labelParams.leftMargin = (int) dpToPx(10);
-        labelParams.topMargin = (int) dpToPx(10); // Increase or decrease as needed
+        labelParams.leftMargin = (int) dpToPx(20);
+        labelParams.topMargin = (int) dpToPx(10);
         labelTextView.setLayoutParams(labelParams);
+        labelTextView.setVisibility(GONE);
+
+        addView(pinContainer);
         addView(labelTextView);
 
         initPinDigits(context);
     }
 
     private void initPinDigits(Context context) {
+        pinContainer.removeAllViews();
         pinDigits = new EditText[pinLength];
         LayoutInflater inflater = LayoutInflater.from(context);
 
         for (int i = 0; i < pinLength; i++) {
             EditText digit = (EditText) inflater.inflate(R.layout.pin_input_layout, this, false);
-            digit.setInputType(maskInput ? (EditorInfo.TYPE_CLASS_NUMBER | EditorInfo.TYPE_NUMBER_VARIATION_PASSWORD)
-                    : EditorInfo.TYPE_CLASS_NUMBER);
+            digit.setInputType(maskInput ? (InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD) : InputType.TYPE_CLASS_NUMBER);
             digit.setImeOptions(EditorInfo.IME_ACTION_NEXT);
+            digit.setMaxEms(1);
             digit.setCursorVisible(false);
-            digit.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-            digit.setMaxLines(1);
-            digit.setFilters(new InputFilter[]{new InputFilter.LengthFilter(1)});
-
-            LayoutParams params = new LayoutParams((int) dpToPx(40), (int) dpToPx(40));
-            if (i != 0) params.leftMargin = (int) digitSpacing;
-            digit.setLayoutParams(params);
-            digit.setBackground(createBoxBackground(boxStrokeColor));
+            digit.addTextChangedListener(new PinTextWatcher(i));
 
             final int index = i;
-            digit.addTextChangedListener(new PinTextWatcher(index));
-
             digit.setOnFocusChangeListener((v, hasFocus) -> {
-                if (!isErrorState) {
-                    digit.setBackground(createBoxBackground(hasFocus ? boxStrokeHighlightColor : boxStrokeColor));
-                }
+                if (pinDigits == null || pinDigits[index] == null) return;
+                updateDigitBackgrounds();
                 animateLabel(hasFocus || !getPin().isEmpty());
                 if (hasFocus) showKeyboard(v);
             });
 
-            digit.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-            digit.setContentDescription("PIN digit " + (i + 1));
-
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dpToPx(40), dpToPx(40));
+            if (i > 0) {
+                params.setMarginStart((int) digitSpacing);
+            }
+            digit.setLayoutParams(params);
             pinContainer.addView(digit);
             pinDigits[i] = digit;
         }
+
+        animateLabel(false);
+        updateDigitBackgrounds();
     }
 
-    private GradientDrawable createBoxBackground(int strokeColor) {
+    private GradientDrawable createBoxBackground(boolean isFocused) {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setColor(boxBackgroundColor);
         drawable.setCornerRadius(boxCornerRadius);
+
+        int strokeColor;
+        if (isErrorState) {
+            strokeColor = errorColor;
+        } else if (isFocused) {
+            strokeColor = boxStrokeHighlightColor;
+        } else {
+            strokeColor = boxStrokeColor;
+        }
         drawable.setStroke((int) boxStrokeWidth, strokeColor);
         return drawable;
     }
 
-    public void setHint(String hint) {
-        labelTextView.setText(hint);
-        labelTextView.setVisibility(VISIBLE);
-        labelTextView.setTranslationY(0);
-        labelTextView.setScaleX(1f);
-        labelTextView.setScaleY(1f);
-        labelTextView.setTextColor(hintColor);
-
-        if (!getPin().isEmpty()) {
-            labelTextView.setTranslationY(-labelTranslationY);
-            labelTextView.setScaleX(floatingLabelScale);
-            labelTextView.setScaleY(floatingLabelScale);
-            labelTextView.setTextColor(floatingLabelColor);
-            isLabelFloating = true;
+    private void updateDigitBackgrounds() {
+        if (pinDigits == null) return;
+        for (EditText digit : pinDigits) {
+            if (digit != null) {
+                boolean hasFocus = digit.isFocused();
+                digit.setBackground(createBoxBackground(hasFocus));
+            }
         }
     }
 
-    public void setPinLength(int length) {
-        if (length <= 0) throw new IllegalArgumentException("PIN length must be greater than 0");
-        this.pinLength = length;
-        // Remove existing digits
-        pinContainer.removeAllViews();
-        // Re-initialize digits
-        initPinDigits(getContext());
-        // Reset error state and label
-        setErrorState(false);
-        animateLabel(false);
+    public void setHint(String hint) {
+        if (labelTextView != null) {
+            labelTextView.setText(hint);
+            labelTextView.setVisibility(VISIBLE);
+            labelTextView.setTranslationY(0);
+            labelTextView.setScaleX(1f);
+            labelTextView.setScaleY(1f);
+            labelTextView.setTextColor(hintColor);
+
+            if (!getPin().isEmpty()) {
+                labelTextView.setTranslationY(-labelTranslationY);
+                labelTextView.setScaleX(floatingLabelScale);
+                labelTextView.setScaleY(floatingLabelScale);
+                labelTextView.setTextColor(floatingLabelColor);
+                isLabelFloating = true;
+            }
+        }
     }
 
     private void animateLabel(boolean floatUp) {
-        if (labelTextView.getText().toString().isEmpty() || floatUp == isLabelFloating) return;
+        if (labelTextView.getText().toString().isEmpty() || floatUp == isLabelFloating) {
+            return;
+        }
 
         isLabelFloating = floatUp;
-        ValueAnimator animator = ValueAnimator.ofFloat(floatUp ? 0 : -labelTranslationY, floatUp ? -labelTranslationY : 0);
-        ArgbEvaluator evaluator = new ArgbEvaluator();
 
+        ValueAnimator animator = ValueAnimator.ofFloat(floatUp ? 0 : -labelTranslationY, floatUp ? -labelTranslationY : 0);
         animator.addUpdateListener(animation -> {
             float value = (float) animation.getAnimatedValue();
             labelTextView.setTranslationY(value);
@@ -196,36 +200,68 @@ public class PinInputView extends FrameLayout {
             float scale = floatUp
                     ? 1f + (floatingLabelScale - 1f) * animation.getAnimatedFraction()
                     : floatingLabelScale + (1f - floatingLabelScale) * animation.getAnimatedFraction();
-
             labelTextView.setScaleX(scale);
             labelTextView.setScaleY(scale);
 
-            int color = (int) evaluator.evaluate(animation.getAnimatedFraction(),
-                    floatUp ? hintColor : floatingLabelColor,
-                    floatUp ? floatingLabelColor : hintColor);
+            int color = floatUp
+                    ? interpolateColor(hintColor, floatingLabelColor, animation.getAnimatedFraction())
+                    : interpolateColor(floatingLabelColor, hintColor, animation.getAnimatedFraction());
             labelTextView.setTextColor(color);
         });
-
         animator.setDuration(200);
         animator.start();
     }
 
+    private int interpolateColor(int startColor, int endColor, float fraction) {
+        int startA = (startColor >> 24) & 0xff;
+        int startR = (startColor >> 16) & 0xff;
+        int startG = (startColor >> 8) & 0xff;
+        int startB = startColor & 0xff;
+
+        int endA = (endColor >> 24) & 0xff;
+        int endR = (endColor >> 16) & 0xff;
+        int endG = (endColor >> 8) & 0xff;
+        int endB = endColor & 0xff;
+
+        return ((startA + (int) (fraction * (endA - startA))) << 24) |
+                ((startR + (int) (fraction * (endR - startR))) << 16) |
+                ((startG + (int) (fraction * (endG - startG))) << 8) |
+                ((startB + (int) (fraction * (endB - startB))));
+    }
+
     public String getPin() {
         StringBuilder sb = new StringBuilder();
+        if (pinDigits == null) return "";
         for (EditText digit : pinDigits) {
-            sb.append(digit.getText().toString());
+            if (digit != null && digit.getText() != null) {
+                sb.append(digit.getText().toString());
+            }
         }
         return sb.toString();
     }
 
     public void clear() {
+        if (pinDigits == null) return;
         for (EditText digit : pinDigits) {
-            digit.setText("");
-            digit.setBackground(createBoxBackground(boxStrokeColor));
+            if (digit != null) {
+                digit.setText("");
+            }
         }
-        if (pinLength > 0) pinDigits[0].requestFocus();
+        if (pinLength > 0 && pinDigits[0] != null) {
+            pinDigits[0].requestFocus();
+        }
         animateLabel(false);
-        setErrorState(false);
+        isErrorState = false;
+        updateDigitBackgrounds();
+    }
+
+    private void showKeyboard(View view) {
+        view.postDelayed(() -> {
+            InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+            }
+        }, 200);
     }
 
     public void setOnPinEnteredListener(OnPinEnteredListener listener) {
@@ -233,47 +269,66 @@ public class PinInputView extends FrameLayout {
     }
 
     public void setErrorState(boolean error) {
-        isErrorState = error;
-        for (EditText digit : pinDigits) {
-            digit.setBackground(createBoxBackground(error ? errorColor : boxStrokeColor));
-        }
+        this.isErrorState = error;
+        updateDigitBackgrounds();
     }
 
-    private void showKeyboard(View v) {
-        v.postDelayed(() -> {
-            InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) imm.showSoftInput(v, InputMethodManager.SHOW_IMPLICIT);
-        }, 200);
+    public void setPinLength(int length) {
+        if (length <= 0) throw new IllegalArgumentException("PIN length must be greater than 0");
+        this.pinLength = length;
+        initPinDigits(getContext());
+        animateLabel(false);
+        isErrorState = false;
     }
 
-    private float dpToPx(float dp) {
-        return dp * getResources().getDisplayMetrics().density;
+    private int dpToPx(float dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density);
     }
 
     private class PinTextWatcher implements TextWatcher {
-        private final int index;
+        private final int currentIndex;
 
         PinTextWatcher(int index) {
-            this.index = index;
+            this.currentIndex = index;
         }
 
-        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        }
 
-        @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+        }
 
-        @Override public void afterTextChanged(Editable s) {
+        @Override
+        public void afterTextChanged(Editable s) {
+            if (isErrorState) {
+                isErrorState = false;
+                updateDigitBackgrounds();
+            }
+
             if (s.length() == 1) {
-                if (index < pinLength - 1) {
-                    pinDigits[index + 1].requestFocus();
+                if (currentIndex < pinLength - 1 && pinDigits[currentIndex + 1] != null) {
+                    pinDigits[currentIndex + 1].requestFocus();
                 } else if (onPinEnteredListener != null) {
                     onPinEnteredListener.onPinEntered(getPin());
                 }
                 animateLabel(true);
-            } else if (s.length() == 0 && index > 0) {
-                pinDigits[index - 1].requestFocus();
-                pinDigits[index - 1].setText("");
+            } else if (s.length() == 0) {
+                if (currentIndex > 0 && pinDigits[currentIndex - 1] != null) {
+                    pinDigits[currentIndex - 1].requestFocus();
+                }
+                if (getPin().isEmpty()) {
+                    animateLabel(false);
+                }
             }
-            if (getPin().isEmpty()) animateLabel(false);
+            updateDigitBackgrounds();
         }
     }
+
+    public void clearErrorState() {
+        this.isErrorState = false;
+        updateDigitBackgrounds();
+    }
+
 }
