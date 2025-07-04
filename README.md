@@ -1,11 +1,11 @@
-## PinInput View
+# PinInput View
 
 
-🎯 PinInputView
+## 🎯 PinInputView
 
 A fully customizable and modern PIN input UI component for Android. Supports animated floating labels, individual digit boxes, error states, and optional dot masking for secure PIN entry.
 
-✨ Features
+## ✨ Features
 
 ✅ Individual boxes for each PIN digit.
 
@@ -52,7 +52,7 @@ Add these inside your res/values/attrs.xml:
 </declare-styleable>
 ```
 
-⚙️ XML Usage
+## ⚙️ XML Usage
 
 ```
 <com.your.package.PinInputView
@@ -71,7 +71,7 @@ Add these inside your res/values/attrs.xml:
     app:boxStrokeWidth="1dp"
     app:digitSpacing="8dp" />
 ```
-🧑‍💻 Code Usage
+## 🧑‍💻 Code Usage
 Set hint text
 ```
 pinView.setHint("Enter PIN");
@@ -104,7 +104,7 @@ Remove error state
 pinView.setErrorState(false);
 ```
 
-💡 Customizable XML attributes
+## 💡 Customizable XML attributes
 Attribute	Type	Description
 pinLength	integer	Number of PIN digits (default 4)
 maskInput	boolean	Show dots instead of numbers (default false)
@@ -118,17 +118,16 @@ boxCornerRadius	dimension	Box corner radius
 boxStrokeWidth	dimension	Box stroke width
 digitSpacing	dimension	Space between digit boxes
 
-🦾 Accessibility
+## 🦾 Accessibility
 Each digit box has an accessibility label ("PIN digit 1", "PIN digit 2", etc.)
 
 Works with screen readers.
 
 Floating label acts as accessible hint.
 
-💎 Visual Example
+## 💎 Visual Example
 
-Enter PIN
-[ ● ] [ ● ] [ ● ] [ ● ]
+![ChatGPT Image Jul 4, 2025, 04_18_11 PM](https://github.com/user-attachments/assets/82dec290-d60c-49f2-99be-33acab03b786)
 
 - Floating label moves up on focus.
 - Active box highlighted.
