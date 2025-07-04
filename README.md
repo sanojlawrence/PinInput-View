@@ -127,7 +127,7 @@ Floating label acts as accessible hint.
 
 ## 💎 Visual Example
 
-![ChatGPT Image Jul 4, 2025, 04_18_11 PM](https://github.com/user-attachments/assets/82dec290-d60c-49f2-99be-33acab03b786)
+![ChatGPT Image Jul 4, 2025, 08_18_17 PM](https://github.com/user-attachments/assets/4a9530ea-f03c-4baf-8851-6825d4d320d4)
 
 - Floating label moves up on focus.
 - Active box highlighted.
