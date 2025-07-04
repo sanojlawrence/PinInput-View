@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pin_digit_view.xml -->
+<EditText xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pinDigit"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:inputType="numberPassword"
+    android:maxLength="1"
+    android:textSize="18sp"
+    android:background="@null"
+    android:cursorVisible="false" />

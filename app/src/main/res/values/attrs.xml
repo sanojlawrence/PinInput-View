@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PinInputView">
+        <attr name="hintColor" format="color" />
+        <attr name="floatingLabelColor" format="color" />
+        <attr name="boxBackgroundColor" format="color" />
+        <attr name="boxStrokeColor" format="color" />
+        <attr name="boxStrokeHighlightColor" format="color" />
+        <attr name="errorColor" format="color" />
+        <attr name="boxCornerRadius" format="dimension" />
+        <attr name="boxStrokeWidth" format="dimension" />
+        <attr name="digitSpacing" format="dimension" />
+        <attr name="maskInput" format="boolean" />
+        <attr name="pinLength" format="integer" />
+    </declare-styleable>
+</resources>
