@@ -30,6 +30,31 @@ A fully customizable and modern PIN input UI component for Android. Supports ani
 
 ## 💼 Setup
 
+[![](https://jitpack.io/v/sanojlawrence/PinInput-View.svg)](https://jitpack.io/#sanojlawrence/PinInput-View)
+
+To get a Git project into your build:
+
+Step 1. Add the JitPack repository to your build file
+
+gradle
+Add it in your root settings.gradle at the end of repositories:
+
+	dependencyResolutionManagement {
+		repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+		repositories {
+			mavenCentral()
+			maven { url 'https://jitpack.io' }
+		}
+	}
+Step 2. Add the dependency
+
+	dependencies {
+	        implementation 'com.github.sanojlawrence:PinInput-View:v1.0.0'
+	}
+
+
+##
+
 1️⃣ Add the custom view to your project
 Add PinInputView.java and pin_digit_view.xml to your project.
 
