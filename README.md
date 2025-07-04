@@ -2,21 +2,34 @@
 
 
 🎯 PinInputView
+
 A fully customizable and modern PIN input UI component for Android. Supports animated floating labels, individual digit boxes, error states, and optional dot masking for secure PIN entry.
 
 ✨ Features
+
 ✅ Individual boxes for each PIN digit.
+
 ✅ Animated floating label (hint).
+
 ✅ Highlight active box on focus.
+
 ✅ Automatic move to next digit.
+
 ✅ Smooth delete & back-navigation.
+
 ✅ Optional PIN masking (dots) for security.
+
 ✅ Error state (red border) support.
+
 ✅ Dynamic PIN length (e.g., 4, 6, or custom).
+
 ✅ Customizable colors, radius, and spacing via XML attributes.
+
 ✅ Accessibility-friendly (screen reader support).
 
-💼 Setup
+
+## 💼 Setup
+
 1️⃣ Add the custom view to your project
 Add PinInputView.java and pin_digit_view.xml to your project.
 
