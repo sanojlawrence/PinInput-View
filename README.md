@@ -30,6 +30,31 @@ A fully customizable and modern PIN input UI component for Android. Supports ani
 
 ## 💼 Setup
 
+[![](https://jitpack.io/v/sanojlawrence/PinInput-View.svg)](https://jitpack.io/#sanojlawrence/PinInput-View)
+
+To get a Git project into your build:
+
+Step 1. Add the JitPack repository to your build file
+
+gradle
+Add it in your root settings.gradle at the end of repositories:
+
+	dependencyResolutionManagement {
+		repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+		repositories {
+			mavenCentral()
+			maven { url 'https://jitpack.io' }
+		}
+	}
+Step 2. Add the dependency
+
+	dependencies {
+	        implementation 'com.github.sanojlawrence:PinInput-View:v1.0.0'
+	}
+
+
+##
+
 1️⃣ Add the custom view to your project
 Add PinInputView.java and pin_digit_view.xml to your project.
 
@@ -127,7 +152,7 @@ Floating label acts as accessible hint.
 
 ## 💎 Visual Example
 
-![ChatGPT Image Jul 4, 2025, 04_18_11 PM](https://github.com/user-attachments/assets/82dec290-d60c-49f2-99be-33acab03b786)
+![ChatGPT Image Jul 4, 2025, 08_18_17 PM](https://github.com/user-attachments/assets/4a9530ea-f03c-4baf-8851-6825d4d320d4)
 
 - Floating label moves up on focus.
 - Active box highlighted.
