@@ -1,4 +1,4 @@
-package com.jldevelopers.pininputview;
+package com.jldevelopers.pininput;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -93,7 +93,7 @@ public class PinInputView extends FrameLayout {
         labelTextView = new TextView(context);
         labelTextView.setTextSize(16);
         labelTextView.setTextColor(hintColor);
-        FrameLayout.LayoutParams labelParams = new FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        LayoutParams labelParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         labelParams.leftMargin = (int) dpToPx(20);
         labelParams.topMargin = (int) dpToPx(10);
         labelTextView.setLayoutParams(labelParams);
