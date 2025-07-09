@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="PinInputView">
-        <attr name="hintColor" format="color" />
+        <attr name="labelColor" format="color" />
         <attr name="floatingLabelColor" format="color" />
         <attr name="boxBackgroundColor" format="color" />
         <attr name="boxStrokeColor" format="color" />

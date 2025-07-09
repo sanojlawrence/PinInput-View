@@ -1,5 +1,7 @@
 package com.jldevelopers.pininput;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -11,6 +13,9 @@ import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
@@ -19,6 +24,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.interpolator.view.animation.LinearOutSlowInInterpolator;
 
 public class PinInputView extends FrameLayout {
 
@@ -29,7 +35,7 @@ public class PinInputView extends FrameLayout {
     private OnPinEnteredListener onPinEnteredListener;
 
     // Style attributes
-    private int hintColor;
+    private int labelColor;
     private int floatingLabelColor;
     private int boxBackgroundColor;
     private int boxStrokeColor;
@@ -43,7 +49,7 @@ public class PinInputView extends FrameLayout {
     private boolean isErrorState = false;
     private boolean isLabelFloating = false;
     private float labelTranslationY;
-    private final float floatingLabelScale = 0.75f;
+    private final float floatingLabelScale = 0.9f;
 
     public interface OnPinEnteredListener {
         void onPinEntered(String pin);
@@ -69,22 +75,22 @@ public class PinInputView extends FrameLayout {
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.PinInputView);
         try {
-            hintColor = a.getColor(R.styleable.PinInputView_hintColor, Color.GRAY);
-            floatingLabelColor = a.getColor(R.styleable.PinInputView_floatingLabelColor, Color.BLUE);
-            boxBackgroundColor = a.getColor(R.styleable.PinInputView_boxBackgroundColor, Color.WHITE);
-            boxStrokeColor = a.getColor(R.styleable.PinInputView_boxStrokeColor, Color.LTGRAY);
-            boxStrokeHighlightColor = a.getColor(R.styleable.PinInputView_boxStrokeHighlightColor, Color.BLUE);
-            errorColor = a.getColor(R.styleable.PinInputView_errorColor, Color.RED);
+            labelColor = a.getColor(R.styleable.PinInputView_labelColor, Color.parseColor("#78909C"));
+            floatingLabelColor = a.getColor(R.styleable.PinInputView_floatingLabelColor, Color.parseColor("#03A9F4"));
+            boxBackgroundColor = a.getColor(R.styleable.PinInputView_boxBackgroundColor, Color.parseColor("#E1F5FE"));
+            boxStrokeColor = a.getColor(R.styleable.PinInputView_boxStrokeColor, Color.parseColor("#90A4AE"));
+            boxStrokeHighlightColor = a.getColor(R.styleable.PinInputView_boxStrokeHighlightColor, Color.parseColor("#29B6F6"));
+            errorColor = a.getColor(R.styleable.PinInputView_errorColor, Color.parseColor("#EF5350"));
             boxCornerRadius = a.getDimension(R.styleable.PinInputView_boxCornerRadius, dpToPx(8));
             boxStrokeWidth = a.getDimension(R.styleable.PinInputView_boxStrokeWidth, dpToPx(1));
             digitSpacing = a.getDimension(R.styleable.PinInputView_digitSpacing, dpToPx(8));
-            maskInput = a.getBoolean(R.styleable.PinInputView_maskInput, false);
+            maskInput = a.getBoolean(R.styleable.PinInputView_maskInput, true);
             pinLength = a.getInt(R.styleable.PinInputView_pinLength, 4);
         } finally {
             a.recycle();
         }
 
-        labelTranslationY = dpToPx(16);
+        labelTranslationY = dpToPx(12);
 
         pinContainer = new LinearLayout(context);
         pinContainer.setOrientation(LinearLayout.HORIZONTAL);
@@ -92,7 +98,7 @@ public class PinInputView extends FrameLayout {
 
         labelTextView = new TextView(context);
         labelTextView.setTextSize(16);
-        labelTextView.setTextColor(hintColor);
+        labelTextView.setTextColor(labelColor);
         LayoutParams labelParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         labelParams.leftMargin = (int) dpToPx(20);
         labelParams.topMargin = (int) dpToPx(10);
@@ -166,14 +172,15 @@ public class PinInputView extends FrameLayout {
         }
     }
 
-    public void setHint(String hint) {
+    public void setLabel(String label) {
         if (labelTextView != null) {
-            labelTextView.setText(hint);
+            labelTextView.setText(label);
             labelTextView.setVisibility(VISIBLE);
             labelTextView.setTranslationY(0);
             labelTextView.setScaleX(1f);
             labelTextView.setScaleY(1f);
-            labelTextView.setTextColor(hintColor);
+            labelTextView.setTextColor(labelColor);
+            labelTextView.setBackgroundColor(Color.WHITE);
 
             if (!getPin().isEmpty()) {
                 labelTextView.setTranslationY(-labelTranslationY);
@@ -192,23 +199,53 @@ public class PinInputView extends FrameLayout {
 
         isLabelFloating = floatUp;
 
-        ValueAnimator animator = ValueAnimator.ofFloat(floatUp ? 0 : -labelTranslationY, floatUp ? -labelTranslationY : 0);
-        animator.addUpdateListener(animation -> {
-            float value = (float) animation.getAnimatedValue();
-            labelTextView.setTranslationY(value);
+        float startY = labelTextView.getTranslationY();
+        float endY = floatUp ? -labelTranslationY : 0f;
 
-            float scale = floatUp
-                    ? 1f + (floatingLabelScale - 1f) * animation.getAnimatedFraction()
-                    : floatingLabelScale + (1f - floatingLabelScale) * animation.getAnimatedFraction();
-            labelTextView.setScaleX(scale);
-            labelTextView.setScaleY(scale);
+        float startScale = floatUp ? 1f : floatingLabelScale;
+        float endScale = floatUp ? floatingLabelScale : 1f;
+
+        float startAlpha = floatUp ? 1f : 0.85f;
+        float endAlpha = floatUp ? 0.85f : 1f;
+
+        ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
+        animator.setDuration(250);
+        animator.setInterpolator(floatUp ? new OvershootInterpolator(1.2f) : new DecelerateInterpolator());
+
+        animator.addUpdateListener(animation -> {
+            float fraction = animation.getAnimatedFraction();
+
+            float currentY = startY + (endY - startY) * fraction;
+            float currentScale = startScale + (endScale - startScale) * fraction;
+            float currentAlpha = startAlpha + (endAlpha - startAlpha) * fraction;
+
+            labelTextView.setTranslationY(currentY);
+            labelTextView.setScaleX(currentScale);
+            labelTextView.setScaleY(currentScale);
+            labelTextView.setAlpha(currentAlpha);
 
             int color = floatUp
-                    ? interpolateColor(hintColor, floatingLabelColor, animation.getAnimatedFraction())
-                    : interpolateColor(floatingLabelColor, hintColor, animation.getAnimatedFraction());
+                    ? interpolateColor(labelColor, floatingLabelColor, fraction)
+                    : interpolateColor(floatingLabelColor, labelColor, fraction);
             labelTextView.setTextColor(color);
         });
-        animator.setDuration(200);
+
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                // When label is floating ➜ remove background & When label is normal ➜ set background white
+                    labelTextView.setBackgroundColor(isLabelFloating ? Color.TRANSPARENT : Color.WHITE);
+            }
+
+            @Override
+            public void onAnimationStart(Animator animation) {
+                if (floatUp) {
+                    // While moving up, already remove background to match floating style
+                    labelTextView.setBackgroundColor(Color.TRANSPARENT);
+                }
+            }
+        });
+
         animator.start();
     }
 

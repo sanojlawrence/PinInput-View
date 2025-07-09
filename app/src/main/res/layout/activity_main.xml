@@ -7,4 +7,36 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <com.jldevelopers.pininput.PinInputView
+        android:id="@+id/pin_login"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        app:labelColor="#263238"
+        app:floatingLabelColor="#03A9F4"
+        app:boxBackgroundColor="#FFFFFF"
+        app:boxStrokeColor="#90A4AE"
+        app:boxStrokeHighlightColor="#0288D1"
+        app:errorColor="#EF5350"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/outlinedTextField" />
+
+    <com.jldevelopers.pininput.PinInputView
+        android:id="@+id/outlinedTextField"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        app:labelColor="#263238"
+        app:floatingLabelColor="#03A9F4"
+        app:boxBackgroundColor="#FFFFFF"
+        app:boxStrokeColor="#90A4AE"
+        app:boxStrokeHighlightColor="#0288D1"
+        app:errorColor="#EF5350"
+        app:layout_constraintTop_toBottomOf="@id/pin_login"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
