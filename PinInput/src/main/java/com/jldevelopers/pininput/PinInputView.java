@@ -82,7 +82,7 @@ public class PinInputView extends FrameLayout {
             boxStrokeHighlightColor = a.getColor(R.styleable.PinInputView_boxStrokeHighlightColor, Color.parseColor("#29B6F6"));
             errorColor = a.getColor(R.styleable.PinInputView_errorColor, Color.parseColor("#EF5350"));
             boxCornerRadius = a.getDimension(R.styleable.PinInputView_boxCornerRadius, dpToPx(8));
-            boxStrokeWidth = a.getDimension(R.styleable.PinInputView_boxStrokeWidth, dpToPx(1));
+            boxStrokeWidth = a.getDimension(R.styleable.PinInputView_boxStrokeWidth, dpToPx(2));
             digitSpacing = a.getDimension(R.styleable.PinInputView_digitSpacing, dpToPx(8));
             maskInput = a.getBoolean(R.styleable.PinInputView_maskInput, true);
             pinLength = a.getInt(R.styleable.PinInputView_pinLength, 4);
@@ -94,14 +94,14 @@ public class PinInputView extends FrameLayout {
 
         pinContainer = new LinearLayout(context);
         pinContainer.setOrientation(LinearLayout.HORIZONTAL);
-        pinContainer.setPadding((int) dpToPx(16), (int) dpToPx(24), (int) dpToPx(16), (int) dpToPx(5));
+        pinContainer.setPadding(dpToPx(16), dpToPx(24), dpToPx(16), dpToPx(5));
 
         labelTextView = new TextView(context);
         labelTextView.setTextSize(16);
         labelTextView.setTextColor(labelColor);
         LayoutParams labelParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-        labelParams.leftMargin = (int) dpToPx(20);
-        labelParams.topMargin = (int) dpToPx(10);
+        labelParams.leftMargin = dpToPx(20);
+        labelParams.topMargin = dpToPx(10);
         labelTextView.setLayoutParams(labelParams);
         labelTextView.setVisibility(GONE);
 
