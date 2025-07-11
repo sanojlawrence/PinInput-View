@@ -77,7 +77,7 @@ public class PinInputView extends FrameLayout {
         try {
             labelColor = a.getColor(R.styleable.PinInputView_labelColor, Color.parseColor("#78909C"));
             floatingLabelColor = a.getColor(R.styleable.PinInputView_floatingLabelColor, Color.parseColor("#03A9F4"));
-            boxBackgroundColor = a.getColor(R.styleable.PinInputView_boxBackgroundColor, Color.parseColor("#E1F5FE"));
+            boxBackgroundColor = a.getColor(R.styleable.PinInputView_boxBackgroundColor, Color.TRANSPARENT);
             boxStrokeColor = a.getColor(R.styleable.PinInputView_boxStrokeColor, Color.parseColor("#90A4AE"));
             boxStrokeHighlightColor = a.getColor(R.styleable.PinInputView_boxStrokeHighlightColor, Color.parseColor("#29B6F6"));
             errorColor = a.getColor(R.styleable.PinInputView_errorColor, Color.parseColor("#EF5350"));
@@ -321,6 +321,30 @@ public class PinInputView extends FrameLayout {
     private int dpToPx(float dp) {
         return (int) (dp * getResources().getDisplayMetrics().density);
     }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        // Check if there is already text or focus
+        boolean shouldFloat = false;
+
+        if (!getPin().isEmpty()) {
+            shouldFloat = true;
+        } else {
+            for (EditText digit : pinDigits) {
+                if (digit != null && digit.isFocused()) {
+                    shouldFloat = true;
+                    break;
+                }
+            }
+        }
+
+        if (shouldFloat) {
+            // Animate label up when attached
+            post(() -> animateLabel(true));
+        }
+    }
+
 
     private class PinTextWatcher implements TextWatcher {
         private final int currentIndex;
