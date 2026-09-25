@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="PinInputView">
+        <!-- Existing attributes -->
         <attr name="labelColor" format="color" />
         <attr name="floatingLabelColor" format="color" />
         <attr name="boxBackgroundColor" format="color" />
@@ -12,5 +13,23 @@
         <attr name="digitSpacing" format="dimension" />
         <attr name="maskInput" format="boolean" />
         <attr name="pinLength" format="integer" />
+
+        <!-- New modern UI attributes - FIXED -->
+        <attr name="digitTextColor" format="color" />
+        <attr name="digitTextSize" format="dimension" />
+        <attr name="animationDuration" format="integer" />
+        <attr name="enableRippleEffect" format="boolean" />
+        <attr name="digitElevation" format="dimension" />
+        <attr name="digitWidth" format="dimension" />  <!-- FIXED: color → dimension -->
+        <attr name="digitHeight" format="dimension" />
+        <attr name="digitTypeface" format="enum">
+            <enum name="normal" value="0" />              <!-- Changed from "default" to "normal" -->
+            <enum name="monospace" value="1" />
+            <enum name="sansSerifMedium" value="2" />     <!-- Also fixed underscores -->
+            <enum name="sansSerif" value="3" />           <!-- Also fixed underscores -->
+        </attr>
+        <attr name="cursorColor" format="color" />
+        <attr name="cursorWidth" format="dimension" />
+        <attr name="cursorBlinkRate" format="integer" />
     </declare-styleable>
 </resources>

@@ -2,18 +2,30 @@ package com.jldevelopers.pininput;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.view.inputmethod.EditorInfo;
@@ -24,7 +36,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.interpolator.view.animation.LinearOutSlowInInterpolator;
+
+import com.google.android.material.color.MaterialColors;
+import com.google.android.material.shape.MaterialShapeDrawable;
+import com.google.android.material.shape.ShapeAppearanceModel;
 
 public class PinInputView extends FrameLayout {
 
@@ -51,9 +68,22 @@ public class PinInputView extends FrameLayout {
     private float labelTranslationY;
     private final float floatingLabelScale = 0.9f;
 
-    public interface OnPinEnteredListener {
-        void onPinEntered(String pin);
-    }
+    // New modern UI attributes
+    private int digitTextColor;
+    private int digitTextSize;
+    private int animationDuration;
+    private boolean enableRippleEffect;
+    private int digitElevation;
+    private int digitWidth;
+    private int digitHeight;
+    private int surfaceColor;
+    private Typeface digitTypeface;
+    private Drawable normalBg;
+    private Drawable focusedBg;
+    private Drawable errorBg;
+
+    // Animation fields
+    private ValueAnimator currentDigitAnimator;
 
     public PinInputView(Context context) {
         super(context);
@@ -72,34 +102,67 @@ public class PinInputView extends FrameLayout {
 
     private void init(Context context, AttributeSet attrs) {
         removeAllViews();
+        setClipToPadding(false);
+        setClipChildren(false);
 
+        //noinspection resource
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.PinInputView);
         try {
-            labelColor = a.getColor(R.styleable.PinInputView_labelColor, Color.parseColor("#78909C"));
-            floatingLabelColor = a.getColor(R.styleable.PinInputView_floatingLabelColor, Color.parseColor("#03A9F4"));
-            boxBackgroundColor = a.getColor(R.styleable.PinInputView_boxBackgroundColor, Color.TRANSPARENT);
-            boxStrokeColor = a.getColor(R.styleable.PinInputView_boxStrokeColor, Color.parseColor("#90A4AE"));
-            boxStrokeHighlightColor = a.getColor(R.styleable.PinInputView_boxStrokeHighlightColor, Color.parseColor("#29B6F6"));
-            errorColor = a.getColor(R.styleable.PinInputView_errorColor, Color.parseColor("#EF5350"));
-            boxCornerRadius = a.getDimension(R.styleable.PinInputView_boxCornerRadius, dpToPx(8));
-            boxStrokeWidth = a.getDimension(R.styleable.PinInputView_boxStrokeWidth, dpToPx(2));
-            digitSpacing = a.getDimension(R.styleable.PinInputView_digitSpacing, dpToPx(8));
+            labelColor = ContextCompat.getColor(context, R.color.jl_pin_label);
+            floatingLabelColor = ContextCompat.getColor(context, R.color.jl_pin_label_focused);
+            boxBackgroundColor = ContextCompat.getColor(context, R.color.jl_pin_background);
+            boxStrokeColor = ContextCompat.getColor(context, R.color.jl_pin_stroke);
+            boxStrokeHighlightColor = ContextCompat.getColor(context, R.color.jl_pin_stroke_focused);
+            errorColor = ContextCompat.getColor(context, R.color.jl_pin_error);
+            digitTextColor = ContextCompat.getColor(context, R.color.jl_pin_text);
+            // Existing attributes
+            boxCornerRadius = a.getDimension(R.styleable.PinInputView_boxCornerRadius, dpToPx(14));
+            boxStrokeWidth = a.getDimension(R.styleable.PinInputView_boxStrokeWidth, dpToPx(1));
+            digitSpacing = a.getDimension(R.styleable.PinInputView_digitSpacing, dpToPx(10));
             maskInput = a.getBoolean(R.styleable.PinInputView_maskInput, true);
-            pinLength = a.getInt(R.styleable.PinInputView_pinLength, 4);
+            pinLength = a.getInt(R.styleable.PinInputView_pinLength, 6); // Default to 6 for modern look
+            surfaceColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurface);
+
+            // New modern attributes
+            digitTextSize = a.getDimensionPixelSize(R.styleable.PinInputView_digitTextSize, spToPx(18));
+            animationDuration = a.getInteger(R.styleable.PinInputView_animationDuration, 200);
+            enableRippleEffect = a.getBoolean(R.styleable.PinInputView_enableRippleEffect, true);
+            digitElevation = a.getDimensionPixelSize(R.styleable.PinInputView_digitElevation, dpToPx(2));
+            digitWidth = a.getDimensionPixelSize(R.styleable.PinInputView_digitWidth, dpToPx(48));
+            digitHeight = a.getDimensionPixelSize(R.styleable.PinInputView_digitHeight, dpToPx(56));
+
+            int typefaceValue = a.getInteger(R.styleable.PinInputView_digitTypeface, 0);
+            digitTypeface = getTypefaceFromValue(typefaceValue);
+
         } finally {
             a.recycle();
         }
 
-        labelTranslationY = dpToPx(12);
+        labelTranslationY = dpToPx(16);
 
+        normalBg = createBoxBackground(false);
+        focusedBg = createBoxBackground(true);
+
+        isErrorState = true;
+        errorBg = createBoxBackground(false);
+        isErrorState = false;
+
+        // Create main container with modern spacing
         pinContainer = new LinearLayout(context);
         pinContainer.setOrientation(LinearLayout.HORIZONTAL);
-        pinContainer.setPadding(dpToPx(16), dpToPx(24), dpToPx(16), dpToPx(5));
+        pinContainer.setGravity(Gravity.CENTER);
+        pinContainer.setPadding(dpToPx(16), dpToPx(32), dpToPx(16), dpToPx(16));
+        pinContainer.setClipToPadding(false);
+        pinContainer.setClipChildren(false);
 
+        // Modern label styling
         labelTextView = new TextView(context);
-        labelTextView.setTextSize(16);
+        labelTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, spToPx(16));
         labelTextView.setTextColor(labelColor);
+        labelTextView.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+
         LayoutParams labelParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        labelParams.gravity = Gravity.START;
         labelParams.leftMargin = dpToPx(20);
         labelParams.topMargin = dpToPx(10);
         labelTextView.setLayoutParams(labelParams);
@@ -111,6 +174,15 @@ public class PinInputView extends FrameLayout {
         initPinDigits(context);
     }
 
+    private Typeface getTypefaceFromValue(int value) {
+        return switch (value) {
+            case 1 -> Typeface.MONOSPACE;
+            case 2 -> Typeface.create("sans-serif-medium", Typeface.NORMAL);
+            case 3 -> Typeface.create("sans-serif", Typeface.NORMAL);
+            default -> Typeface.DEFAULT;
+        };
+    }
+
     private void initPinDigits(Context context) {
         pinContainer.removeAllViews();
         pinDigits = new EditText[pinLength];
@@ -118,10 +190,27 @@ public class PinInputView extends FrameLayout {
 
         for (int i = 0; i < pinLength; i++) {
             EditText digit = (EditText) inflater.inflate(R.layout.pin_input_layout, this, false);
-            digit.setInputType(maskInput ? (InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD) : InputType.TYPE_CLASS_NUMBER);
-            digit.setImeOptions(EditorInfo.IME_ACTION_NEXT);
-            digit.setMaxEms(1);
-            digit.setCursorVisible(false);
+
+            // Modern text styling
+            digit.setTextColor(digitTextColor);
+            digit.setTextSize(TypedValue.COMPLEX_UNIT_PX, digitTextSize);
+            digit.setTypeface(digitTypeface);
+            digit.setGravity(Gravity.CENTER);
+
+            // Input configuration
+            digit.setInputType(maskInput ?
+                    (InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD) :
+                    InputType.TYPE_CLASS_NUMBER);
+            digit.setImeOptions(i == pinLength - 1 ? EditorInfo.IME_ACTION_DONE : EditorInfo.IME_ACTION_NEXT);
+            digit.setFilters(new InputFilter[]{ new InputFilter.LengthFilter(1) });
+            digit.setCursorVisible(true);
+            digit.setClickable(true);
+            digit.setFocusable(true);
+            digit.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            digit.setContentDescription("PIN digit " + (i + 1));
+            digit.setLongClickable(false);
+            digit.setTextIsSelectable(false);
+
             digit.addTextChangedListener(new PinTextWatcher(i));
 
             final int index = i;
@@ -129,14 +218,33 @@ public class PinInputView extends FrameLayout {
                 if (pinDigits == null || pinDigits[index] == null) return;
                 updateDigitBackgrounds();
                 animateLabel(hasFocus || !getPin().isEmpty());
-                if (hasFocus) showKeyboard(v);
+                if (hasFocus) {
+                    showKeyboard(v);
+                    animateDigitFocus(index);
+                }
             });
 
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dpToPx(40), dpToPx(40));
+            digit.setOnKeyListener((v, keyCode, event) -> {
+                if (keyCode == KeyEvent.KEYCODE_DEL && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (digit.getText().length() == 0 && index > 0) {
+                        pinDigits[index - 1].requestFocus();
+                        pinDigits[index - 1].setText("");
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            // Modern layout with elevation and ripple
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(digitWidth, digitHeight);
             if (i > 0) {
                 params.setMarginStart((int) digitSpacing);
             }
             digit.setLayoutParams(params);
+
+            // Add elevation for modern look
+            digit.setElevation(digitElevation);
+
             pinContainer.addView(digit);
             pinDigits[i] = digit;
         }
@@ -145,10 +253,14 @@ public class PinInputView extends FrameLayout {
         updateDigitBackgrounds();
     }
 
-    private GradientDrawable createBoxBackground(boolean isFocused) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(boxBackgroundColor);
-        drawable.setCornerRadius(boxCornerRadius);
+    private Drawable createBoxBackground(boolean isFocused) {
+        ShapeAppearanceModel shapeModel = new ShapeAppearanceModel()
+                .toBuilder()
+                .setAllCornerSizes(boxCornerRadius)
+                .build();
+
+        MaterialShapeDrawable drawable = new MaterialShapeDrawable(shapeModel);
+        drawable.setFillColor(ColorStateList.valueOf(boxBackgroundColor));
 
         int strokeColor;
         if (isErrorState) {
@@ -158,16 +270,83 @@ public class PinInputView extends FrameLayout {
         } else {
             strokeColor = boxStrokeColor;
         }
+
         drawable.setStroke((int) boxStrokeWidth, strokeColor);
+        if (enableRippleEffect) {
+            return new RippleDrawable(
+                    ColorStateList.valueOf(withAlpha(boxStrokeHighlightColor, 0.12f)),
+                    drawable,
+                    null
+            );
+        }
         return drawable;
+    }
+
+    private int withAlpha(int color, float alpha) {
+        int a = Math.round(255 * alpha);
+        return Color.argb(a, Color.red(color), Color.green(color), Color.blue(color));
+    }
+
+    private void animateDigitFocus(int index) {
+        if (currentDigitAnimator != null && currentDigitAnimator.isRunning()) {
+            currentDigitAnimator.cancel();
+        }
+
+        if (index < 0 || index >= pinDigits.length || pinDigits[index] == null) {
+            return;
+        }
+
+        EditText digit = pinDigits[index];
+
+        float targetScale = 1.05f;
+        float currentScale = digit.getScaleX();
+
+        currentDigitAnimator = ValueAnimator.ofFloat(currentScale, targetScale);
+        currentDigitAnimator.setDuration(animationDuration);
+        currentDigitAnimator.setInterpolator(AnimationUtils.loadInterpolator(getContext(), com.google.android.material.R.interpolator.m3_sys_motion_easing_emphasized));
+
+        currentDigitAnimator.addUpdateListener(animation -> {
+            float value = (float) animation.getAnimatedValue();
+            digit.setScaleX(value);
+            digit.setScaleY(value);
+        });
+
+        currentDigitAnimator.start();
+    }
+
+    private void animateDigitEntry(int index) {
+        if (index < 0 || index >= pinDigits.length || pinDigits[index] == null) {
+            return;
+        }
+
+        EditText digit = pinDigits[index];
+
+        // Create a pop-in animation for new entries
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(digit, "scaleX", 0.8f, 1.0f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(digit, "scaleY", 0.8f, 1.0f);
+
+        AnimatorSet set = new AnimatorSet();
+        set.playTogether(scaleX, scaleY);
+        set.setDuration(animationDuration);
+        set.setInterpolator(new OvershootInterpolator());
+        set.start();
+    }
+
+    public interface OnPinEnteredListener {
+        void onPinEntered(String pin);
     }
 
     private void updateDigitBackgrounds() {
         if (pinDigits == null) return;
         for (EditText digit : pinDigits) {
-            if (digit != null) {
-                boolean hasFocus = digit.isFocused();
-                digit.setBackground(createBoxBackground(hasFocus));
+            if (digit == null) continue;
+
+            if (isErrorState) {
+                digit.setBackground(errorBg);
+            } else if (digit.isFocused()) {
+                digit.setBackground(focusedBg);
+            } else {
+                digit.setBackground(normalBg);
             }
         }
     }
@@ -180,7 +359,7 @@ public class PinInputView extends FrameLayout {
             labelTextView.setScaleX(1f);
             labelTextView.setScaleY(1f);
             labelTextView.setTextColor(labelColor);
-            labelTextView.setBackgroundColor(Color.WHITE);
+            labelTextView.setBackgroundColor(surfaceColor);
 
             if (!getPin().isEmpty()) {
                 labelTextView.setTranslationY(-labelTranslationY);
@@ -234,7 +413,7 @@ public class PinInputView extends FrameLayout {
             @Override
             public void onAnimationEnd(Animator animation) {
                 // When label is floating ➜ remove background & When label is normal ➜ set background white
-                    labelTextView.setBackgroundColor(isLabelFloating ? Color.TRANSPARENT : Color.WHITE);
+                labelTextView.setBackgroundColor(isLabelFloating ? Color.TRANSPARENT : surfaceColor);
             }
 
             @Override
@@ -308,6 +487,13 @@ public class PinInputView extends FrameLayout {
     public void setErrorState(boolean error) {
         this.isErrorState = error;
         updateDigitBackgrounds();
+
+        if (error) {
+            // Add shake animation for error state
+            ObjectAnimator shake = ObjectAnimator.ofFloat(pinContainer, "translationX", 0, 25, -25, 15, -15, 6, -6, 0);
+            shake.setDuration(600);
+            shake.start();
+        }
     }
 
     public void setPinLength(int length) {
@@ -325,7 +511,7 @@ public class PinInputView extends FrameLayout {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        // Check if there is already text or focus
+
         boolean shouldFloat = false;
 
         if (!getPin().isEmpty()) {
@@ -340,11 +526,20 @@ public class PinInputView extends FrameLayout {
         }
 
         if (shouldFloat) {
-            // Animate label up when attached
             post(() -> animateLabel(true));
+        }
+
+        // Force keyboard if first digit is focused
+        if (pinDigits != null && pinDigits.length > 0 && pinDigits[0].isFocused()) {
+            postDelayed(() -> showKeyboard(pinDigits[0]), 300);
         }
     }
 
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        removeCallbacks(null);
+    }
 
     private class PinTextWatcher implements TextWatcher {
         private final int currentIndex;
@@ -369,13 +564,16 @@ public class PinInputView extends FrameLayout {
             }
 
             if (s.length() == 1) {
+                animateDigitEntry(currentIndex);
+
                 if (currentIndex < pinLength - 1 && pinDigits[currentIndex + 1] != null) {
                     pinDigits[currentIndex + 1].requestFocus();
                 } else if (onPinEnteredListener != null) {
-                    onPinEnteredListener.onPinEntered(getPin());
+                    // Post this to the next UI thread cycle to ensure all digits are properly set
+                    post(() -> onPinEnteredListener.onPinEntered(getPin()));
                 }
                 animateLabel(true);
-            } else if (s.length() == 0) {
+            } else if (TextUtils.isEmpty(s)) {
                 if (currentIndex > 0 && pinDigits[currentIndex - 1] != null) {
                     pinDigits[currentIndex - 1].requestFocus();
                 }
@@ -387,9 +585,12 @@ public class PinInputView extends FrameLayout {
         }
     }
 
+    private int spToPx(float sp) {
+        return (int) (sp * getResources().getDisplayMetrics().scaledDensity);
+    }
+
     public void clearErrorState() {
         this.isErrorState = false;
         updateDigitBackgrounds();
     }
-
 }

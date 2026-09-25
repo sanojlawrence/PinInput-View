@@ -22,8 +22,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     // ✅ Add this to enable publishing for release variant
     publishing {
@@ -34,6 +34,7 @@ android {
 dependencies {
 
     implementation libs.appcompat
+    implementation libs.material
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
@@ -46,7 +47,7 @@ afterEvaluate {
                 from components["release"]
                 groupId = 'com.github.sanojlawrence'
                 artifactId = 'PinInput-View'
-                version = 'v1.0.1'
+                version = 'v1.0.2'
             }
         }
     }
